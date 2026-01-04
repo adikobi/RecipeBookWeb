@@ -2,7 +2,10 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>ספר המתכונים שלי</title>
     
     <!-- React & ReactDOM -->
@@ -14,6 +17,24 @@
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    screens: {
+                        'xs': '375px',
+                    },
+                    padding: {
+                        'safe-bottom': 'env(safe-area-inset-bottom)',
+                        'safe-top': 'env(safe-area-inset-top)',
+                    },
+                    margin: {
+                        'safe-top': 'env(safe-area-inset-top)',
+                    }
+                }
+            }
+        }
+    </script>
     
     <!-- Lucide Icons (Script version for browser) -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -103,17 +124,23 @@
         const Tag = (p) => <Icon name="Tag" {...p} />;
         const ShieldCheck = (p) => <Icon name="ShieldCheck" {...p} />;
         const Database = (p) => <Icon name="Database" {...p} />;
+        const CloudUpload = (p) => <Icon name="CloudUpload" {...p} />;
+        const ChevronDown = (p) => <Icon name="ChevronDown" {...p} />;
 
         // --- Global Styles (Exact Copy) ---
         const GlobalStyles = () => (
           <style>
             {`
               @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&display=swap');
-              body { font-family: 'Rubik', sans-serif; background-color: #000; color: #e5e7eb; }
+              body { font-family: 'Rubik', sans-serif; background-color: #000; color: #e5e7eb; overflow-x: hidden; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+              
+              /* Mobile adjustments */
+              input, textarea, select { font-size: 16px !important; } /* Prevent iOS zoom */
+              
               .glass-panel {
-                background: rgba(30, 30, 30, 0.6);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
+                background: rgba(20, 20, 20, 0.85);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
               }
               .gradient-text {
                 background: linear-gradient(135deg, #fb7185 0%, #fb923c 100%);
@@ -150,19 +177,24 @@
                 scrollbar-width: none;
               }
               
-              /* Added keyframes for animations used in JSX classes but defined in tailwind/external in react usually */
               @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
               @keyframes slideInBottom { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+              @keyframes slideUpSheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
               @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-              @keyframes slideInTop { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
               @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-              .animate-in { animation-duration: 0.5s; animation-fill-mode: forwards; }
+              .animate-in { animation-duration: 0.4s; animation-fill-mode: forwards; }
               .fade-in { animation-name: fadeIn; }
               .slide-in-from-bottom-8 { animation-name: slideInBottom; }
+              .slide-up-sheet { animation: slideUpSheet 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
               .zoom-in-95 { animation-name: zoomIn; }
-              .slide-in-from-top-4 { animation-name: slideInTop; }
               .animate-spin-slow { animation: spin 3s linear infinite; }
+              
+              /* Bottom Sheet specific styles */
+              .modal-backdrop {
+                  background-color: rgba(0,0,0,0.6);
+                  backdrop-filter: blur(4px);
+              }
             `}
           </style>
         );
@@ -211,65 +243,120 @@
           const Icon = isError ? AlertCircle : CheckCircle2;
 
           return (
-            <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 px-6 py-4 rounded-2xl border backdrop-blur-md shadow-xl animate-in slide-in-from-top-4 fade-in duration-300 ${bgColor}`}>
-              <Icon className={textColor} size={24} />
-              <span className="text-white font-medium">{message}</span>
-              <button onClick={onClose} className="mr-2 text-gray-400 hover:text-white transition-colors"><X size={18} /></button>
+            <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 px-6 py-4 rounded-2xl border backdrop-blur-md shadow-xl animate-in fade-in duration-300 ${bgColor} w-[90%] max-w-sm justify-between shadow-2xl`}>
+              <div className="flex items-center gap-3">
+                  <Icon className={textColor} size={24} />
+                  <span className="text-white font-medium text-sm md:text-base">{message}</span>
+              </div>
+              <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors p-1"><X size={18} /></button>
             </div>
           );
         };
 
+        // Mobile Optimized Modal (Bottom Sheet style on Mobile)
         const Modal = ({ isOpen, onClose, children }) => {
           if (!isOpen) return null;
           return (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4 modal-backdrop animate-in fade-in duration-300">
               <div className="absolute inset-0" onClick={onClose} />
-              <div className="relative bg-[#1a1a1a] rounded-[2rem] p-8 max-w-sm w-full border border-white/5 shadow-2xl z-10 overflow-hidden animate-in zoom-in-95 duration-300">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+              
+              <div className="relative w-full sm:max-w-md bg-[#1a1a1a] rounded-t-[2.5rem] sm:rounded-[2rem] p-6 pb-safe-bottom border-t sm:border border-white/10 shadow-2xl z-10 overflow-hidden animate-in slide-up-sheet sm:zoom-in-95 duration-300 max-h-[85vh] overflow-y-auto">
+                {/* Drag handle for mobile */}
+                <div className="w-12 h-1.5 bg-gray-700 rounded-full mx-auto mb-6 sm:hidden opacity-50" />
+                
+                <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
                 <div className="relative z-10">{children}</div>
               </div>
             </div>
           );
         };
 
+        const SecurityModal = ({ isOpen, step, onClose, onConfirm }) => {
+            if (!isOpen) return null;
+            
+            let question = "";
+            let subtext = "";
+            if (step === 1) { question = "האם אתה עדי?"; }
+            else if (step === 2) { question = "בטוח? אבל באמת?"; }
+            else if (step === 3) { question = "אזהרת מפתחים!"; subtext = "פעולה זו עלולה למחוק נתונים. אם אינך המפתח, עצור עכשיו."; }
+            
+            return (
+                <Modal isOpen={isOpen} onClose={onClose}>
+                    <div className="text-center pb-4">
+                        <div className="mx-auto w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mb-4">
+                            <ShieldCheck size={32} className="text-rose-500" />
+                        </div>
+                        <h3 className="text-2xl font-black text-white mb-2">בדיקת אבטחה ({step}/3)</h3>
+                        <p className="text-lg text-gray-200 mb-2 font-bold">{question}</p>
+                        {subtext && <p className="text-sm text-rose-400 mb-6 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">{subtext}</p>}
+                        {!subtext && <div className="h-6 mb-6"></div>}
+                        
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <button onClick={onConfirm} className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-rose-600 to-orange-500 text-white font-bold shadow-lg shadow-rose-900/20 active:scale-95 transition-transform text-lg">כן, אני עדי</button>
+                            <button onClick={onClose} className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#2a2a2a] text-gray-400 font-medium active:scale-95 transition-transform">ביטול</button>
+                        </div>
+                    </div>
+                </Modal>
+            );
+        };
+
         const ConfirmationContent = ({ title, message, onConfirm, onClose }) => (
             <React.Fragment>
-                <h3 className="text-2xl font-bold text-white mb-3">{title}</h3>
-                <p className="text-gray-400 mb-8 text-lg font-light">{message}</p>
-                <div className="flex gap-4 justify-end">
-                    <button onClick={onClose} className="px-6 py-3 rounded-2xl text-gray-300 hover:bg-white/5 transition-all font-medium">ביטול</button>
-                    <button onClick={onConfirm} className="px-6 py-3 rounded-2xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-bold shadow-lg shadow-red-900/20 transition-all active:scale-95">מחק</button>
+                <h3 className="text-2xl font-bold text-white mb-3 pr-2">{title}</h3>
+                <p className="text-gray-400 mb-8 text-lg font-light leading-relaxed pr-2">{message}</p>
+                <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+                    <button onClick={onClose} className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-[#2a2a2a] text-gray-300 font-medium active:scale-95 transition-transform">ביטול</button>
+                    <button onClick={onConfirm} className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-red-600 text-white font-bold shadow-lg shadow-red-900/20 active:scale-95 transition-transform flex items-center justify-center gap-2">
+                        <Trash2 size={20} />
+                        מחק
+                    </button>
                 </div>
             </React.Fragment>
         );
 
-        const SettingsContent = ({ onBackup, onRestore, onExportWord, onClose, isTestEnv }) => {
+        const SettingsContent = ({ onBackup, onRestore, onExportWord, onCloudBackup, isCloudLoading, onClose, isTestEnv }) => {
             return (
-                <div className="flex flex-col gap-3">
-                    <h3 className="text-2xl font-bold text-white mb-2">הגדרות</h3>
+                <div className="flex flex-col gap-4 pb-2">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-2xl font-bold text-white">הגדרות</h3>
+                        <button onClick={onClose} className="p-2 bg-white/5 rounded-full"><X size={20} className="text-gray-400" /></button>
+                    </div>
                     
                     {isTestEnv && (
-                        <div className="bg-orange-500/10 border border-orange-500/30 p-3 rounded-xl mb-2 flex items-center gap-3">
-                            <Database className="text-orange-400" size={20} />
+                        <div className="bg-orange-500/10 border border-orange-500/30 p-4 rounded-2xl flex items-center gap-3">
+                            <Database className="text-orange-400" size={24} />
                             <div>
-                                <div className="text-orange-400 font-bold text-sm">מצב סביבת בדיקה</div>
-                                <div className="text-orange-500/70 text-xs">השינויים נשמרים במסד בדיקות</div>
+                                <div className="text-orange-400 font-bold">מצב סביבת בדיקה</div>
+                                <div className="text-orange-500/70 text-sm">השינויים נשמרים בנפרד</div>
                             </div>
                         </div>
                     )}
 
-                    <div className="bg-white/5 p-4 rounded-2xl mb-2 border border-white/5">
-                        <h4 className="text-sm text-gray-400 mb-3 font-bold uppercase tracking-wider">גיבוי וייצוא</h4>
-                        <button onClick={onExportWord} className="w-full flex items-center gap-4 p-3 hover:bg-white/5 rounded-xl transition-all text-right mb-2">
-                            <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg"><FileText size={20} /></div>
-                            <div className="text-white font-medium">ייצוא לקובץ Word</div>
-                        </button>
-                        <button onClick={onBackup} className="w-full flex items-center gap-4 p-3 hover:bg-white/5 rounded-xl transition-all text-right mb-2">
-                            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg"><Download size={20} /></div>
-                            <div className="text-white font-medium">שמירת גיבוי למכשיר</div>
+                    <div className="space-y-3">
+                        <h4 className="text-xs text-gray-500 font-bold uppercase tracking-wider mr-1">סנכרון וגיבוי</h4>
+                        <button onClick={onCloudBackup} disabled={isCloudLoading} className="w-full flex items-center gap-4 p-4 bg-[#252525] active:bg-[#303030] rounded-2xl transition-all text-right group disabled:opacity-50 border border-white/5 relative overflow-hidden">
+                            <div className={`p-3 bg-rose-500/20 text-rose-400 rounded-xl ${isCloudLoading ? 'animate-pulse' : ''}`}><CloudUpload size={24} /></div>
+                            <div>
+                                <div className="text-white font-bold text-lg">גיבוי מלא לענן</div>
+                                <div className="text-gray-400 text-sm">שמירה מאובטחת בשרת</div>
+                            </div>
+                            {isCloudLoading && <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div></div>}
                         </button>
                     </div>
-                    <button onClick={onClose} className="mt-2 w-full py-3 rounded-2xl text-gray-400 hover:bg-white/5 transition-colors">סגור</button>
+
+                    <div className="space-y-3">
+                        <h4 className="text-xs text-gray-500 font-bold uppercase tracking-wider mr-1">פעולות מקומיות</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button onClick={onExportWord} className="flex flex-col items-center gap-3 p-4 bg-[#252525] active:bg-[#303030] rounded-2xl transition-all border border-white/5">
+                                <div className="p-3 bg-indigo-500/20 text-indigo-400 rounded-xl"><FileText size={24} /></div>
+                                <span className="text-white font-medium text-sm">ייצוא Word</span>
+                            </button>
+                            <button onClick={onBackup} className="flex flex-col items-center gap-3 p-4 bg-[#252525] active:bg-[#303030] rounded-2xl transition-all border border-white/5">
+                                <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl"><Download size={24} /></div>
+                                <span className="text-white font-medium text-sm">הורדת קובץ</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             );
         };
@@ -292,23 +379,31 @@
           };
 
           return (
-            <div className="min-h-screen bg-black flex items-center justify-center p-4">
+            <div className="min-h-screen bg-black flex items-center justify-center p-6">
               <div className="max-w-md w-full bg-[#121212] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-500">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-rose-500/20 rounded-full blur-[80px] pointer-events-none"></div>
                 <div className="relative z-10 flex flex-col items-center text-center">
-                  <div className="w-20 h-20 gradient-bg rounded-3xl flex items-center justify-center shadow-lg shadow-rose-900/30 mb-6 rotate-3">
-                    <Lock className="text-white" size={36} />
+                  <div className="w-24 h-24 gradient-bg rounded-3xl flex items-center justify-center shadow-lg shadow-rose-900/30 mb-8 rotate-3">
+                    <Lock className="text-white" size={42} />
                   </div>
-                  <h1 className="text-3xl font-black text-white mb-2">ברוכים הבאים</h1>
-                  <p className="text-gray-400 mb-8">ספר המתכונים של המשפחה</p>
-                  <form onSubmit={handleSubmit} className="w-full space-y-4">
-                    <div className="relative">
-                      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={`w-full bg-[#0a0a0a] text-white text-center text-lg font-medium p-5 rounded-2xl border outline-none transition-all placeholder-gray-700 ${error ? 'border-red-500/50 text-red-400 animate-shake focus:ring-1 focus:ring-red-500' : 'border-white/10 focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/50'}`} placeholder="סיסמה" autoFocus />
-                      <KeyRound className="absolute top-1/2 right-5 -translate-y-1/2 text-gray-600" size={20} />
+                  <h1 className="text-4xl font-black text-white mb-3">ברוכים הבאים</h1>
+                  <p className="text-gray-400 mb-10 text-lg">ספר המתכונים של המשפחה</p>
+                  <form onSubmit={handleSubmit} className="w-full space-y-5">
+                    <div className="relative group">
+                      <input 
+                        type="password" 
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)} 
+                        className={`w-full bg-[#0a0a0a] text-white text-center text-xl font-bold py-5 rounded-2xl border outline-none transition-all placeholder-gray-700 ${error ? 'border-red-500/50 text-red-400 animate-shake' : 'border-white/10 focus:border-rose-500/50'}`} 
+                        placeholder="סיסמה" 
+                        autoFocus 
+                        inputMode="text"
+                      />
+                      <KeyRound className="absolute top-1/2 right-5 -translate-y-1/2 text-gray-600 group-focus-within:text-rose-500 transition-colors" size={24} />
                     </div>
-                    <button type="submit" className="w-full gradient-bg text-white font-bold py-5 rounded-2xl shadow-xl shadow-rose-900/20 transition-all active:scale-[0.98] hover:brightness-110 text-lg">כניסה</button>
+                    <button type="submit" className="w-full gradient-bg text-white font-bold py-5 rounded-2xl shadow-xl shadow-rose-900/20 transition-all active:scale-[0.98] text-xl">כניסה</button>
                   </form>
-                  {error && <p className="text-red-400 mt-4 text-sm animate-in fade-in">סיסמה שגויה, נסו שוב</p>}
+                  {error && <p className="text-red-400 mt-4 text-sm animate-in fade-in font-medium">סיסמה שגויה, נסו שוב</p>}
                 </div>
               </div>
             </div>
@@ -335,16 +430,16 @@
           const toggleLine = (index) => setCheckedState(prev => ({ ...prev, [index]: !prev[index] }));
 
           return (
-            <div className="space-y-3 animate-in fade-in duration-500">
+            <div className="space-y-3 animate-in fade-in duration-500 pb-10">
               {lines.map((line, index) => {
-                if (!line.trim()) return <div key={index} className="h-6" />;
+                if (!line.trim()) return <div key={index} className="h-4" />;
                 const isChecked = checkedState[index];
                 return (
-                  <div key={index} onClick={() => toggleLine(index)} className={`group flex items-start gap-4 p-4 rounded-2xl cursor-pointer border checkbox-transition select-none ${isChecked ? 'bg-[#151515] border-white/5 opacity-60' : 'bg-[#1a1a1a] border-white/10 hover:border-rose-500/30 hover:bg-[#202020] shadow-sm'}`}>
-                    <div className={`mt-1 checkbox-transition ${isChecked ? 'text-emerald-500' : 'text-gray-500 group-hover:text-rose-400'}`}>
-                      {isChecked ? <CheckCircle2 size={24} weight="fill" /> : <Circle size={24} />}
+                  <div key={index} onClick={() => toggleLine(index)} className={`group flex items-start gap-4 p-5 rounded-2xl cursor-pointer border checkbox-transition select-none active:scale-[0.98] ${isChecked ? 'bg-[#121212] border-white/5 opacity-50' : 'bg-[#1a1a1a] border-white/10 shadow-md'}`}>
+                    <div className={`mt-0.5 checkbox-transition ${isChecked ? 'text-emerald-500' : 'text-gray-500'}`}>
+                      {isChecked ? <CheckCircle2 size={26} weight="fill" /> : <Circle size={26} />}
                     </div>
-                    <div className={`text-lg leading-relaxed flex-1 checkbox-transition ${isChecked ? 'line-through text-gray-600 decoration-emerald-500/50' : 'text-gray-200'}`}>
+                    <div className={`text-lg leading-relaxed flex-1 checkbox-transition ${isChecked ? 'line-through text-gray-600' : 'text-gray-200'}`}>
                       <TextWithLinks text={line} />
                     </div>
                   </div>
@@ -354,13 +449,65 @@
           );
         };
 
+        // --- Extracted Components (For stability and performance) ---
+
+        const CategoryTabs = ({ selectedCategory, setSelectedCategory, allCategories }) => {
+            const scrollContainerRef = useRef(null);
+
+            // Auto-scroll selected category into view
+            useEffect(() => {
+                const container = scrollContainerRef.current;
+                if (!container) return;
+                
+                const activeBtn = container.querySelector('[data-active="true"]');
+                if (activeBtn) {
+                    activeBtn.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest',
+                        inline: 'center'
+                    });
+                }
+            }, [selectedCategory]);
+
+            return (
+                <div className="sticky top-[135px] z-20 bg-black/95 backdrop-blur-md pb-3 pt-1 border-b border-white/5">
+                    {/* Visual Scroll Hints (Gradients) */}
+                    <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black to-transparent pointer-events-none z-10 md:hidden" />
+                    <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black to-transparent pointer-events-none z-10 md:hidden" />
+                    
+                    <div 
+                        ref={scrollContainerRef} 
+                        className="max-w-3xl mx-auto px-4 overflow-x-auto no-scrollbar flex gap-3 pr-4 pl-4 snap-x"
+                    >
+                        <button 
+                            onClick={() => setSelectedCategory('הכל')} 
+                            data-active={selectedCategory === 'הכל'}
+                            className={`px-5 py-2.5 rounded-full whitespace-nowrap text-base font-bold transition-all shrink-0 snap-center ${selectedCategory === 'הכל' ? 'gradient-bg text-white shadow-lg' : 'bg-[#1a1a1a] text-gray-400 border border-white/5 active:scale-95'}`}
+                        >
+                            הכל
+                        </button>
+                        {allCategories.map(cat => (
+                            <button 
+                                key={cat} 
+                                onClick={() => setSelectedCategory(cat)} 
+                                data-active={selectedCategory === cat}
+                                className={`px-5 py-2.5 rounded-full whitespace-nowrap text-base font-bold transition-all shrink-0 snap-center ${selectedCategory === cat ? 'gradient-bg text-white shadow-lg' : 'bg-[#1a1a1a] text-gray-400 border border-white/5 active:scale-95'}`}
+                            >
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
         // --- Main App ---
 
         const App = () => {
           const [showSplash, setShowSplash] = useState(true);
           const [isAuthenticated, setIsAuthenticated] = useState(false);
           const [dbId, setDbId] = useState(null);
-          const [envMode, setEnvMode] = useState(''); // 'prod' or 'test'
+          const [envMode, setEnvMode] = useState(''); 
            
           const [view, setView] = useState('list');
           const [recipes, setRecipes] = useState([]);
@@ -370,44 +517,24 @@
           const [modalState, setModalState] = useState({ isOpen: false, type: null, data: null });
           const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
           const [loading, setLoading] = useState(false);
+          const [isCloudLoading, setIsCloudLoading] = useState(false);
            
-          // Custom Categories State
           const [allCategories, setAllCategories] = useState(DEFAULT_CATEGORIES);
+          const [securityModalOpen, setSecurityModalOpen] = useState(false);
+          const [securityStep, setSecurityStep] = useState(1);
 
-          // --- Firebase Sync Logic ---
+          // --- Firebase Sync ---
           useEffect(() => {
               if (!isAuthenticated || !db || !dbId) return;
-
               setLoading(true);
-               
-              // Anonymous Login to Firebase
-              const initAuth = async () => {
-                  try {
-                      await auth.signInAnonymously();
-                  } catch (e) {
-                      console.error("Auth error", e);
-                      showToast("שגיאת התחברות לשרת", "error");
-                  }
-              };
-               
+              const initAuth = async () => { try { await auth.signInAnonymously(); } catch (e) { console.error(e); } };
               initAuth();
-
-              // Realtime listener
-              // Compatibility Mode Adaptation: db.collection().doc().collection()
               const unsubscribe = db.collection('notes').doc(dbId).collection('myNotes')
                   .onSnapshot((snapshot) => {
-                      const loadedRecipes = snapshot.docs.map(doc => ({
-                          id: doc.id,
-                          ...doc.data()
-                      }));
+                      const loadedRecipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                       setRecipes(loadedRecipes);
                       setLoading(false);
-                  }, (error) => {
-                      console.error("Error fetching recipes:", error);
-                      showToast("שגיאה בטעינת נתונים", "error");
-                      setLoading(false);
-                  });
-
+                  }, () => setLoading(false));
               return () => unsubscribe();
           }, [isAuthenticated, dbId]);
 
@@ -423,23 +550,50 @@
             setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
           };
 
-          // --- Functions for Categories ---
-          const handleAddCategory = (newCat) => {
-              if (!newCat.trim()) return;
-              if (allCategories.includes(newCat.trim())) {
-                  showToast('הקטגוריה כבר קיימת', 'error');
-                  return;
-              }
-              setAllCategories(prev => [...prev, newCat.trim()]);
-              showToast('קטגוריה נוספה (מקומית)', 'success');
-              // Note: Ideally, categories should also be stored in Firebase
+          // --- Actions ---
+          const initiateCloudBackup = () => {
+              setSecurityStep(1);
+              setSecurityModalOpen(true);
+              setModalState(prev => ({ ...prev, isOpen: false })); 
           };
 
-          // --- Actions ---
+          const handleSecurityConfirm = () => {
+              if (securityStep < 3) {
+                  setSecurityStep(prev => prev + 1);
+              } else {
+                  setSecurityModalOpen(false);
+                  performCloudBackup();
+              }
+          };
+
+          const performCloudBackup = async () => {
+              setIsCloudLoading(true);
+              try {
+                  if (!auth.currentUser) await auth.signInAnonymously();
+                  await db.collection('backups').doc('family_backup').set({
+                      recipes: recipes,
+                      categories: allCategories,
+                      updatedAt: new Date().toISOString(),
+                      backupBy: dbId
+                  });
+                  showToast("הגיבוי בוצע בהצלחה!", "success");
+              } catch (e) {
+                  console.error(e);
+                  showToast("שגיאה בגיבוי", "error");
+              } finally {
+                  setIsCloudLoading(false);
+              }
+          };
+
+          const handleAddCategory = (newCat) => {
+              if (!newCat.trim()) return;
+              if (allCategories.includes(newCat.trim())) { showToast('קיים כבר', 'error'); return; }
+              setAllCategories(prev => [...prev, newCat.trim()]);
+              showToast('קטגוריה נוספה', 'success');
+          };
 
           const handleSave = async (recipe) => {
             if (!db || !dbId) return;
-             
             try {
                 const recipeData = {
                     title: recipe.title,
@@ -447,110 +601,50 @@
                     categories: recipe.categories || [DEFAULT_CATEGORY],
                     updatedAt: new Date().toISOString()
                 };
-
-                if (recipe.id) {
-                    // Update
-                    await db.collection('notes').doc(dbId).collection('myNotes').doc(recipe.id).update(recipeData);
-                } else {
-                    // Create
-                    await db.collection('notes').doc(dbId).collection('myNotes').add(recipeData);
-                }
-                 
-                showToast('המתכון נשמר בהצלחה! 😋', 'success');
+                if (recipe.id) await db.collection('notes').doc(dbId).collection('myNotes').doc(recipe.id).update(recipeData);
+                else await db.collection('notes').doc(dbId).collection('myNotes').add(recipeData);
+                showToast('נשמר בהצלחה! 😋', 'success');
                 setView('list');
                 setActiveRecipe(null);
-            } catch (e) {
-                console.error("Save error", e);
-                showToast("שגיאה בשמירת המתכון", "error");
-            }
+            } catch (e) { showToast("שגיאה בשמירה", "error"); }
           };
 
           const confirmDelete = async () => {
             const id = modalState.data;
             if (!db || !dbId || !id) return;
-
             try {
                 await db.collection('notes').doc(dbId).collection('myNotes').doc(id).delete();
                 if (activeRecipe?.id === id) { setView('list'); setActiveRecipe(null); }
                 setModalState(prev => ({ ...prev, isOpen: false }));
-                showToast('המתכון נמחק', 'info');
-            } catch (e) {
-                console.error("Delete error", e);
-                showToast("שגיאה במחיקת המתכון", "error");
-            }
+                showToast('נמחק בהצלחה', 'info');
+            } catch (e) { showToast("שגיאה במחיקה", "error"); }
           };
 
-          // --- Local Backup (Json) and Word Export ---
           const handleBackup = () => {
               const dataStr = JSON.stringify({ recipes, categories: allCategories }, null, 2);
-              const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-              const linkElement = document.createElement('a');
-              linkElement.setAttribute('href', dataUri);
-              linkElement.setAttribute('download', `backup_${envMode}_${new Date().toISOString().slice(0,10)}.json`);
-              linkElement.click();
+              const link = document.createElement('a');
+              link.href = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+              link.download = `backup_${new Date().toISOString().slice(0,10)}.json`;
+              link.click();
           };
 
           const handleExportWord = () => {
-              if (recipes.length === 0) {
-                  showToast('אין מתכונים לייצוא', 'error');
-                  return;
-              }
-
-              const escapeHtml = (text) => {
-                  if (!text) return '';
-                  return text
-                      .replace(/&/g, "&amp;")
-                      .replace(/</g, "&lt;")
-                      .replace(/>/g, "&gt;")
-                      .replace(/"/g, "&quot;")
-                      .replace(/'/g, "&#039;");
-              };
-
-              let html = `
-                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'>
-                <head>
-                    <meta charset='utf-8'>
-                    <title>ספר מתכונים</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; direction: rtl; text-align: right; }
-                        .recipe-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
-                        .title { color: #e11d48; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
-                        .meta { color: #666; font-size: 14px; margin-bottom: 15px; }
-                        .content { white-space: pre-wrap; line-height: 1.6; }
-                    </style>
-                </head>
-                <body>
-                    <h1 style="text-align:center; color:#e11d48; margin-bottom: 30px;">ספר המתכונים שלי</h1>
-              `;
-
+              if (recipes.length === 0) { showToast('אין נתונים', 'error'); return; }
+              const escapeHtml = (text) => text ? text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
+              let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'><title>ספר מתכונים</title><style>body{font-family:Arial;direction:rtl;text-align:right}</style></head><body><h1 style="text-align:center;color:#e11d48">ספר המתכונים שלי</h1>`;
               recipes.forEach(r => {
-                  const cats = normalizeCategories(r).join(', ');
-                  const safeTitle = escapeHtml(r.title || 'ללא כותרת');
-                  const safeContent = escapeHtml(r.content || '').replace(/\n/g, '<br/>');
-                  
-                  html += `
-                    <div class="recipe-card">
-                        <div class="title">${safeTitle}</div>
-                        <div class="meta"><b>קטגוריות:</b> ${cats}</div>
-                        <div class="content">${safeContent}</div>
-                    </div>
-                  `;
+                  html += `<div style="border:1px solid #ddd;padding:15px;margin-bottom:20px"><h2 style="color:#e11d48">${escapeHtml(r.title)}</h2><p><b>קטגוריות:</b> ${normalizeCategories(r).join(', ')}</p><p style="white-space:pre-wrap">${escapeHtml(r.content).replace(/\n/g, '<br/>')}</p></div>`;
               });
-
               html += "</body></html>";
-              
-              const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
               const link = document.createElement('a');
-              link.href = URL.createObjectURL(blob);
-              link.download = `ספר_מתכונים_${new Date().toLocaleDateString('he-IL').replace(/\./g, '-')}.doc`;
-              document.body.appendChild(link);
+              link.href = URL.createObjectURL(new Blob(['\ufeff', html], { type: 'application/msword' }));
+              link.download = `recipes_${new Date().toLocaleDateString('he-IL').replace(/\./g, '-')}.doc`;
               link.click();
-              document.body.removeChild(link);
           };
 
           const handleShareEmail = (recipe) => {
               const cats = normalizeCategories(recipe).join(', ');
-              window.location.href = `mailto:?subject=${encodeURIComponent(`מתכון: ${recipe.title}`)}&body=${encodeURIComponent(`${recipe.title}\n(${cats})\n\n${recipe.content}\n\nנשלח מאפליקציית המתכונים שלי`)}`;
+              window.location.href = `mailto:?subject=${encodeURIComponent(recipe.title)}&body=${encodeURIComponent(`${recipe.title}\n(${cats})\n\n${recipe.content}`)}`;
           };
 
           const openDeleteModal = (id) => setModalState({ isOpen: true, type: 'delete', data: id });
@@ -565,247 +659,177 @@
             return recipes.filter(r => {
                 const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase()) || r.content.toLowerCase().includes(searchQuery.toLowerCase());
                 if (selectedCategory === 'הכל') return matchesSearch;
-                const rCats = normalizeCategories(r);
-                return matchesSearch && rCats.includes(selectedCategory);
+                return matchesSearch && normalizeCategories(r).includes(selectedCategory);
             }).sort((a, b) => a.title.localeCompare(b.title, 'he'));
           }, [recipes, searchQuery, selectedCategory]);
 
-          // --- Render Sections ---
+          // --- UI Components ---
 
-          const renderHeader = () => (
-            <header className="sticky top-0 z-30 glass-panel border-b border-white/5 p-4 transition-all duration-300">
-              <div className="max-w-3xl mx-auto flex items-center justify-between">
+          const Header = () => (
+            <div className="sticky top-0 z-30 glass-panel border-b border-white/5 pb-2 pt-safe-top transition-all duration-300">
+              <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
                 {view === 'list' ? (
-                  <div className="flex items-center gap-4 w-full">
-                    <button onClick={openSettingsModal} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-gray-400 hover:text-white transition-all"><Settings size={24} /></button>
-                    <div className="flex-1 flex justify-center"><h1 className="text-2xl font-black text-white hidden sm:block tracking-tight">המתכונים <span className="gradient-text">שלי</span></h1></div>
-                    <div className="relative w-full max-w-[45%] md:max-w-xs group">
-                      <input type="text" placeholder="חיפוש..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-[#0a0a0a] text-white rounded-2xl py-3 pr-10 pl-4 focus:outline-none focus:ring-2 focus:ring-rose-500/30 border border-white/5 placeholder-gray-600 transition-all duration-300 group-hover:border-white/10" />
-                      <div className="absolute right-3 top-3.5 text-gray-500 group-hover:text-rose-400 transition-colors"><Search size={20} /></div>
-                    </div>
-                  </div>
+                  <>
+                    <button onClick={openSettingsModal} className="p-3 bg-[#1a1a1a] rounded-full text-gray-400 active:scale-90 transition-transform"><Settings size={24} /></button>
+                    <h1 className="text-2xl font-black text-white tracking-tight">המתכונים <span className="gradient-text">שלי</span></h1>
+                    <div className="w-10"></div> {/* Spacer for balance */}
+                  </>
                 ) : (
-                  <div className="flex items-center gap-4 w-full">
-                    <button onClick={goBack} className="p-3 -mr-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-all active:scale-90"><ArrowRight className="transform rotate-180" size={24} /></button>
-                    <h1 className="text-xl font-bold truncate flex-1 text-white">{view === 'create' ? 'יצירת מתכון' : view === 'edit' ? 'עריכה' : activeRecipe?.title}</h1>
-                    {view === 'view' && (
-                      <div className="flex gap-2">
-                        <button onClick={() => handleShareEmail(activeRecipe)} className="p-3 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-full transition-all"><Mail size={22} /></button>
-                        <button onClick={() => startEdit(activeRecipe)} className="p-3 text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-full transition-all"><Edit2 size={22} /></button>
-                        <button onClick={() => openDeleteModal(activeRecipe.id)} className="p-3 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-all"><Trash2 size={22} /></button>
-                      </div>
-                    )}
-                  </div>
+                  <>
+                    <button onClick={goBack} className="p-3 bg-[#1a1a1a] rounded-full text-white active:scale-90 transition-transform"><ArrowRight className="transform rotate-180" size={24} /></button>
+                    <div className="flex gap-3">
+                      {view === 'view' && (
+                        <>
+                          <button onClick={() => startEdit(activeRecipe)} className="p-3 bg-[#1a1a1a] rounded-full text-blue-400 active:scale-90 transition-transform"><Edit2 size={22} /></button>
+                          <button onClick={() => openDeleteModal(activeRecipe.id)} className="p-3 bg-[#1a1a1a] rounded-full text-red-400 active:scale-90 transition-transform"><Trash2 size={22} /></button>
+                        </>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
-            </header>
+              
+              {view === 'list' && (
+                  <div className="px-4 pb-2 max-w-3xl mx-auto">
+                      <div className="relative">
+                          <input type="text" placeholder="חיפוש מהיר..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-[#1a1a1a] text-white rounded-2xl py-3.5 pr-12 pl-4 focus:outline-none focus:ring-2 focus:ring-rose-500/30 border border-white/5 placeholder-gray-500 text-lg" />
+                          <div className="absolute right-4 top-3.5 text-gray-500"><Search size={22} /></div>
+                      </div>
+                  </div>
+              )}
+            </div>
           );
 
-          const CategoryTabs = () => (
-              <div className="sticky top-[88px] z-20 bg-black/95 backdrop-blur-sm pb-2 pt-2 border-b border-white/5">
-                <div className="max-w-3xl mx-auto px-4 overflow-x-auto no-scrollbar flex gap-2">
-                    <button onClick={() => setSelectedCategory('הכל')} className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-bold transition-all ${selectedCategory === 'הכל' ? 'gradient-bg text-white shadow-lg shadow-rose-900/20' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>הכל</button>
-                    {allCategories.map(cat => (
-                        <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-bold transition-all ${selectedCategory === cat ? 'gradient-bg text-white shadow-lg shadow-rose-900/20' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>{cat}</button>
-                    ))}
-                </div>
-              </div>
-          );
+          // Note: CategoryTabs removed from here and moved outside App to prevent re-render scroll jumping
 
-          const RecipeForm = ({ initialData, onSave, allCategories, onAddCategory }) => {
-            const [title, setTitle] = useState(initialData.title);
-            const [content, setContent] = useState(initialData.content);
-            const [selectedCats, setSelectedCats] = useState(normalizeCategories(initialData));
-            const [errors, setErrors] = useState({});
-            const [isAddingCat, setIsAddingCat] = useState(false);
+          const RecipeForm = () => {
+            const [title, setTitle] = useState(activeRecipe?.title || '');
+            const [content, setContent] = useState(activeRecipe?.content || '');
+            const [selectedCats, setSelectedCats] = useState(normalizeCategories(activeRecipe || {}));
             const [newCatName, setNewCatName] = useState('');
+            const [showCatInput, setShowCatInput] = useState(false);
 
             const toggleCategory = (cat) => {
-                setSelectedCats(prev => {
-                    if (prev.includes(cat)) return prev.filter(c => c !== cat);
-                    if (prev.length >= 2) return prev;
-                    return [...prev, cat];
-                });
+                setSelectedCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : (prev.length < 2 ? [...prev, cat] : prev));
             };
 
-            const handleAddNewCat = (e) => {
+            const addCat = (e) => {
                 e.preventDefault();
                 if (newCatName.trim()) {
-                    onAddCategory(newCatName);
-                    if (selectedCats.length < 2) setSelectedCats(prev => [...prev, newCatName.trim()]);
-                    setNewCatName('');
-                    setIsAddingCat(false);
+                    handleAddCategory(newCatName);
+                    if (selectedCats.length < 2) setSelectedCats(p => [...p, newCatName.trim()]);
+                    setNewCatName(''); setShowCatInput(false);
                 }
             };
 
-            const handleSubmit = (e) => {
-              e.preventDefault();
-              const newErrors = {};
-              if (!title.trim()) newErrors.title = true;
-              if (!content.trim()) newErrors.content = true;
-              if (Object.keys(newErrors).length > 0) { setErrors(newErrors); showToast('נא למלא את כל השדות', 'error'); return; }
-               
-              onSave({ ...initialData, title, content, categories: selectedCats.length > 0 ? selectedCats : [DEFAULT_CATEGORY] });
-            };
-
             return (
-              <form onSubmit={handleSubmit} className="flex flex-col h-[calc(100vh-100px)] max-w-3xl mx-auto p-5 animate-in fade-in slide-in-from-bottom-8 duration-500">
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold mb-2 pr-1 uppercase tracking-wider text-gray-500">כותרת</label>
-                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className={`w-full bg-[#151515] text-white text-2xl font-bold p-6 rounded-[1.5rem] border outline-none transition-all placeholder-gray-700 ${errors.title ? 'border-red-500/50' : 'border-white/5 focus:border-rose-500/50'}`} placeholder="שם המנה..." autoFocus />
-                </div>
-                 
-                <div className="mb-6">
-                    <div className="flex justify-between items-end mb-2 pr-1">
-                        <label className="block text-sm font-semibold uppercase tracking-wider text-gray-500">קטגוריות (עד 2)</label>
-                    </div>
-                     
-                    <div className="flex flex-wrap gap-2">
-                        {allCategories.map(cat => (
-                            <button 
-                                type="button" 
-                                key={cat} 
-                                onClick={() => toggleCategory(cat)} 
-                                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border 
-                                    ${selectedCats.includes(cat) 
-                                        ? 'bg-rose-500/20 border-rose-500 text-rose-400' 
-                                        : 'bg-[#151515] border-white/5 text-gray-500 hover:bg-white/5'}`}
-                            >
-                                {cat}
-                            </button>
-                        ))}
-                         
-                        {!isAddingCat ? (
-                            <button 
-                                type="button" 
-                                onClick={() => setIsAddingCat(true)}
-                                className="px-4 py-2 rounded-xl text-sm font-bold transition-all border border-dashed border-gray-600 text-gray-400 hover:border-gray-400 hover:text-white bg-transparent flex items-center gap-1"
-                            >
-                                <Plus size={14} /> חדש
-                            </button>
-                        ) : (
-                           <div className="flex items-center gap-2 animate-in fade-in">
-                                <input 
-                                    type="text" 
-                                    value={newCatName}
-                                    onChange={(e) => setNewCatName(e.target.value)}
-                                    placeholder="שם..."
-                                    className="bg-[#151515] text-white text-sm px-3 py-2 rounded-xl border border-white/10 outline-none w-32 focus:border-rose-500/50"
-                                    autoFocus
-                                />
-                                <button type="button" onClick={handleAddNewCat} className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30"><CheckCircle2 size={16} /></button>
-                                <button type="button" onClick={() => setIsAddingCat(false)} className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30"><X size={16} /></button>
-                           </div> 
-                        )}
-                    </div>
+              <div className="flex flex-col h-full bg-black">
+                {/* Fixed Top Header for Form */}
+                <div className="sticky top-0 z-40 bg-black/90 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between pt-safe-top">
+                    <button onClick={goBack} className="text-gray-400 font-medium px-2 py-2 hover:text-white transition-colors active:scale-95">ביטול</button>
+                    <h2 className="text-lg font-bold text-white">{activeRecipe?.id ? 'עריכת מתכון' : 'מתכון חדש'}</h2>
+                    <button onClick={() => handleSave({ id: activeRecipe?.id, title, content, categories: selectedCats })} className="bg-white text-black font-bold px-5 py-2 rounded-full shadow-lg active:scale-95 transition-transform flex items-center gap-1">
+                        <Save size={18} className="text-black" /> שמירה
+                    </button>
                 </div>
 
-                <div className="flex-1 mb-6 flex flex-col">
-                  <label className="block text-sm font-semibold mb-2 pr-1 uppercase tracking-wider text-gray-500">הוראות ורכיבים</label>
-                  <textarea value={content} onChange={(e) => setContent(e.target.value)} className={`flex-1 w-full bg-[#151515] text-gray-100 p-6 rounded-[1.5rem] border outline-none resize-none text-lg leading-8 transition-all placeholder-gray-700 ${errors.content ? 'border-red-500/50' : 'border-white/5 focus:border-rose-500/50'}`} placeholder="רשום כל שורה בנפרד..." />
-                </div>
-                <button type="submit" className="w-full gradient-bg text-white font-bold py-5 rounded-[1.5rem] shadow-xl shadow-rose-900/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] hover:brightness-110 text-lg"><Save size={24} />שמירה</button>
-              </form>
-            );
-          };
-
-          const RecipeDetail = ({ recipe }) => {
-            const [isChecklistMode, setIsChecklistMode] = useState(false);
-            const cats = normalizeCategories(recipe);
-
-            return (
-              <div className="max-w-3xl mx-auto p-4 animate-in fade-in zoom-in-95 duration-500 pb-24">
-                <div className="fixed top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-rose-500/20 rounded-full blur-[100px] pointer-events-none z-0"></div>
-                <div className="relative z-10 bg-black rounded-[2.5rem] p-8 md:p-10 border border-white/10 shadow-2xl min-h-[60vh]">
-                  <div className="flex flex-col gap-2 mb-6 border-b border-white/10 pb-6">
-                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <h2 className="text-3xl md:text-4xl font-black text-white leading-tight tracking-tight">{recipe.title}</h2>
-                        <button onClick={() => setIsChecklistMode(!isChecklistMode)} className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-all duration-300 ${isChecklistMode ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-transparent'}`}><ListChecks size={20} />{isChecklistMode ? 'מצב קריאה' : 'מצב צ\'ק-ליסט'}</button>
+                <div className="flex-1 overflow-y-auto max-w-3xl mx-auto w-full p-5 animate-in fade-in slide-in-from-bottom-8">
+                    <div className="mb-6">
+                      <label className="block text-sm font-bold mb-2 text-gray-500">כותרת</label>
+                      <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-[#1a1a1a] text-white text-2xl font-bold p-5 rounded-2xl border border-white/5 focus:border-rose-500/50 outline-none" placeholder="למשל: פסטה ברוטב..." autoFocus />
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                        {cats.map((c, i) => (
-                            <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/5 text-rose-400 text-sm font-medium"><Tag size={14} /> {c}</span>
-                        ))}
+                    <div className="mb-6">
+                        <label className="block text-sm font-bold mb-2 text-gray-500">קטגוריות (מקסימום 2)</label>
+                        <div className="flex flex-wrap gap-2.5">
+                            {allCategories.map(cat => (
+                                <button key={cat} onClick={() => toggleCategory(cat)} className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${selectedCats.includes(cat) ? 'bg-rose-500/20 border-rose-500 text-rose-400' : 'bg-[#1a1a1a] border-white/5 text-gray-400'}`}>{cat}</button>
+                            ))}
+                            <button onClick={() => setShowCatInput(!showCatInput)} className="px-4 py-2.5 rounded-xl text-sm font-bold border border-dashed border-gray-600 text-gray-400 flex items-center gap-1"><Plus size={16} /> חדש</button>
+                        </div>
+                        {showCatInput && <div className="mt-3 flex gap-2"><input type="text" value={newCatName} onChange={e => setNewCatName(e.target.value)} className="flex-1 bg-[#1a1a1a] text-white p-3 rounded-xl border border-white/10" placeholder="שם הקטגוריה..." /><button onClick={addCat} className="bg-emerald-600 text-white p-3 rounded-xl"><CheckCircle2 /></button></div>}
                     </div>
-                  </div>
-                  <div className="text-gray-200">{isChecklistMode ? <ChecklistView content={recipe.content} /> : <div className="whitespace-pre-wrap text-lg md:text-xl leading-relaxed font-light tracking-wide"><TextWithLinks text={recipe.content} /></div>}</div>
+                    <div className="flex-1 pb-10">
+                      <label className="block text-sm font-bold mb-2 text-gray-500">תוכן המתכון</label>
+                      <textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full min-h-[400px] bg-[#1a1a1a] text-white p-5 rounded-2xl border border-white/5 focus:border-rose-500/50 outline-none text-lg leading-relaxed resize-none" placeholder="המצרכים ואופן ההכנה..." />
+                    </div>
                 </div>
               </div>
             );
           };
 
-          const RecipeList = () => (
-            <>
-            <CategoryTabs />
-            <div className="max-w-3xl mx-auto p-4 grid gap-5 pb-32 animate-in fade-in duration-500 mt-2">
-              {loading ? (
-                  <div className="text-center mt-20 flex flex-col items-center">
-                      <div className="mb-4 animate-spin-slow"><Sparkles size={48} className="text-rose-500" /></div>
-                      <p className="text-gray-400">טוען מתכונים מהענן...</p>
-                  </div>
-              ) : filteredRecipes.length === 0 ? (
-                <div className="text-center mt-20 flex flex-col items-center">
-                  <div className="mb-8 p-8 bg-[#151515] rounded-[2rem] border border-white/5 shadow-inner relative overflow-hidden group">
-                    <Sparkles size={48} className="text-gray-600 group-hover:text-rose-400 transition-colors" strokeWidth={1.5} />
-                  </div>
-                  <p className="text-2xl font-bold text-white mb-2">לא נמצאו מתכונים</p>
-                  <p className="text-gray-500">זה הזמן ליצור משהו טעים!</p>
-                </div>
-              ) : (
-                filteredRecipes.map(recipe => (
-                  <div key={recipe.id} onClick={() => viewRecipe(recipe)} className="group relative bg-[#121212] hover:bg-[#1a1a1a] p-6 rounded-[2rem] border border-white/5 hover:border-rose-500/30 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-rose-900/10 hover:-translate-y-1 active:scale-[0.99]">
-                    <div className="absolute top-0 right-8 left-8 h-[1px] bg-gradient-to-r from-transparent via-rose-500 to-transparent opacity-0 group-hover:opacity-50 transition-opacity duration-500"></div>
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                            {normalizeCategories(recipe).slice(0, 2).map((c, i) => (
-                                <span key={i} className="text-xs font-bold text-rose-500/80 uppercase tracking-wide bg-rose-500/10 px-2 py-0.5 rounded-md">{c}</span>
-                            ))}
-                            {normalizeCategories(recipe).length > 2 && <span className="text-xs text-gray-600">+{normalizeCategories(recipe).length - 2}</span>}
-                        </div>
-                        <h3 className="text-2xl font-bold text-gray-100 mb-3 group-hover:text-rose-400 transition-colors leading-tight">{recipe.title}</h3>
-                        <p className="text-gray-400 line-clamp-2 text-base leading-relaxed pl-4 opacity-70 group-hover:opacity-100 transition-opacity font-light">{recipe.content}</p>
-                      </div>
-                      <div className="mt-1 text-gray-700 group-hover:text-rose-500/50 transition-colors p-2 bg-white/5 rounded-full group-hover:bg-white/10"><ArrowRight className="transform rotate-180" size={20} /></div>
+          const RecipeDetail = () => {
+            const [isChecklist, setIsChecklist] = useState(false);
+            if (!activeRecipe) return null;
+            return (
+              <div className="max-w-3xl mx-auto p-5 pb-32 animate-in fade-in slide-in-from-bottom-8">
+                <div className="bg-[#151515] rounded-[2rem] p-6 sm:p-8 border border-white/5 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-rose-500/10 rounded-full blur-[50px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+                    <h2 className="text-3xl sm:text-4xl font-black text-white leading-tight mb-4 relative z-10">{activeRecipe.title}</h2>
+                    <div className="flex flex-wrap gap-2 mb-8 relative z-10">
+                        {normalizeCategories(activeRecipe).map((c, i) => <span key={i} className="px-3 py-1 bg-rose-500/10 text-rose-400 rounded-lg text-sm font-bold border border-rose-500/10">{c}</span>)}
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
-            </>
-          );
+                    <button onClick={() => setIsChecklist(!isChecklist)} className="w-full mb-6 py-3 bg-[#202020] rounded-xl text-gray-300 font-bold flex items-center justify-center gap-2 border border-white/5 active:scale-[0.98]">{isChecklist ? <FileText size={20} /> : <ListChecks size={20} />} {isChecklist ? 'תצוגת טקסט' : 'מצב הכנה (צ\'ק ליסט)'}</button>
+                    {isChecklist ? <ChecklistView content={activeRecipe.content} /> : <div className="text-lg text-gray-200 whitespace-pre-wrap leading-relaxed font-light"><TextWithLinks text={activeRecipe.content} /></div>}
+                </div>
+              </div>
+            );
+          };
 
           // --- Main Render ---
-
           if (showSplash) return <div dir="rtl"><GlobalStyles /><SplashScreen onFinish={() => setShowSplash(false)} /></div>;
-
           if (!isAuthenticated) return <div className="min-h-screen bg-black text-gray-200" dir="rtl"><GlobalStyles /><LoginScreen onLogin={handleLogin} /><Toast show={toast.show} message={toast.message} type={toast.type} onClose={() => setToast(prev => ({...prev, show: false}))} /></div>;
 
           return (
-            <div className="min-h-screen bg-black text-gray-200" dir="rtl">
+            <div className="min-h-screen bg-black text-gray-200 pb-safe-bottom" dir="rtl">
               <GlobalStyles />
-              {renderHeader()}
-              <main className="relative z-0">
-                {view === 'list' && <RecipeList />}
-                {view === 'view' && <RecipeDetail recipe={activeRecipe} />}
-                {(view === 'edit' || view === 'create') && 
-                    <RecipeForm 
-                        initialData={activeRecipe} 
-                        onSave={handleSave} 
-                        allCategories={allCategories}
-                        onAddCategory={handleAddCategory}
-                    />
-                }
+              {/* Show Global Header ONLY when NOT editing/creating */}
+              {(view !== 'edit' && view !== 'create') && <Header />}
+              
+              <main className="relative z-0 h-full">
+                {view === 'list' && (
+                    <>
+                        <CategoryTabs selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} allCategories={allCategories} />
+                        <div className="max-w-3xl mx-auto p-4 grid gap-4 pb-32 animate-in fade-in duration-500 mt-2">
+                          {loading ? (
+                              <div className="text-center mt-20"><div className="mb-4 animate-spin-slow inline-block"><Sparkles size={40} className="text-rose-500" /></div><p className="text-gray-500">טוען...</p></div>
+                          ) : filteredRecipes.length === 0 ? (
+                            <div className="text-center mt-20 px-10">
+                              <div className="inline-block p-6 bg-[#151515] rounded-[2rem] mb-4"><ChefHat size={48} className="text-gray-700" /></div>
+                              <p className="text-xl font-bold text-white mb-2">ריק כאן...</p>
+                              <p className="text-gray-500">לחץ על הפלוס למטה כדי להתחיל</p>
+                            </div>
+                          ) : (
+                            filteredRecipes.map(recipe => (
+                              <div key={recipe.id} onClick={() => viewRecipe(recipe)} className="relative bg-[#1a1a1a] p-6 rounded-[2rem] border border-white/5 active:scale-[0.98] transition-transform">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className="flex gap-2">
+                                        {normalizeCategories(recipe).slice(0, 2).map((c, i) => <span key={i} className="text-xs font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-md">{c}</span>)}
+                                    </div>
+                                </div>
+                                <h3 className="text-2xl font-bold text-white mb-2 leading-tight">{recipe.title}</h3>
+                                <p className="text-gray-400 line-clamp-2 text-base leading-relaxed pl-4 font-light">{recipe.content}</p>
+                                <div className="absolute left-6 bottom-6 text-gray-700"><ArrowRight className="transform rotate-180" size={20} /></div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                    </>
+                )}
+                {view === 'view' && <RecipeDetail />}
+                {(view === 'edit' || view === 'create') && <RecipeForm />}
               </main>
                
               {view === 'list' && (
-                <button onClick={startCreate} className="fixed bottom-8 left-8 gradient-bg text-white rounded-[2rem] p-5 shadow-2xl shadow-rose-600/30 transition-all hover:scale-110 active:scale-95 z-40 group hover:rotate-90"><Plus size={32} strokeWidth={2.5} /></button>
+                <div className="fixed bottom-6 left-6 z-40">
+                    <button onClick={startCreate} className="w-16 h-16 gradient-bg text-white rounded-full shadow-2xl shadow-rose-600/40 flex items-center justify-center active:scale-90 transition-transform"><Plus size={32} strokeWidth={3} /></button>
+                </div>
               )}
                
               <Modal isOpen={modalState.isOpen} onClose={closeModal}>
-                  {modalState.type === 'delete' && <ConfirmationContent title="מחיקת מתכון" message="בטוח שרוצים למחוק? אי אפשר להתחרט אחר כך..." onConfirm={confirmDelete} onClose={closeModal} />}
-                  {modalState.type === 'settings' && <SettingsContent onBackup={handleBackup} onExportWord={handleExportWord} onClose={closeModal} isTestEnv={envMode === 'test'} />}
+                  {modalState.type === 'delete' && <ConfirmationContent title="מחיקת מתכון" message="בטוח שרוצים למחוק? אי אפשר לשחזר אחר כך." onConfirm={confirmDelete} onClose={closeModal} />}
+                  {modalState.type === 'settings' && <SettingsContent onBackup={handleBackup} onExportWord={handleExportWord} onCloudBackup={initiateCloudBackup} isCloudLoading={isCloudLoading} onClose={closeModal} isTestEnv={envMode === 'test'} />}
               </Modal>
+              <SecurityModal isOpen={securityModalOpen} step={securityStep} onClose={() => setSecurityModalOpen(false)} onConfirm={handleSecurityConfirm} />
               <Toast show={toast.show} message={toast.message} type={toast.type} onClose={() => setToast(prev => ({...prev, show: false}))} />
             </div>
           );
